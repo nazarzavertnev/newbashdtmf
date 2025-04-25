@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# Audio control and process functions, with error handling & enhanced logging
-
 process_audio_stream() {
     pw-record -a --target="$REC_DEV" --rate="$SAMPLE_RATE" --channels=1 - | \
     multimon-ng -t raw -a DTMF - 2>> "$LOG_FILE" | \

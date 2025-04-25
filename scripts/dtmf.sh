@@ -29,40 +29,19 @@ process_dtmf() {
                 menu_stack+=("1")
                 ;;
             2)
-                # New logic for option 2
                 menu_stack+=("2")
-                ;;
-            3)
-                # New logic for option 3
                 ;;
             '*')
                 play_audio "$staticf/greet.wav"
-                # Go back to the previous menu
                 if [ ${#menu_stack[@]} -gt 1 ]; then
                     unset 'menu_stack[-1]'
                 fi
-                ;;
-            '#')
-                # New logic for option #
-                ;;
-            *)
-                # New logic for invalid choice
                 ;;
             esac
             ;;
         1)
             case "$digit" in
-            1)
-                # New logic for option 1
-                ;;
-            2)
-                # New logic for option 2
-                ;;
-            3)
-                # New logic for option 3
-                ;;
             0)
-                # Go back to the main menu
                 menu_stack=("0")
                 ;;
             '*')
@@ -74,9 +53,6 @@ process_dtmf() {
                 stop_record
                 play_audio "$staticf/save.wav"
                 menu_stack+=("2")
-                ;;
-            *)
-                # New logic for invalid choice
                 ;;
             esac
             ;;

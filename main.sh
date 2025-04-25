@@ -2,44 +2,42 @@
 
 . "$(dirname "$0")/scripts/config.sh"
 . "$(dirname "$0")/scripts/logging.sh"
+. "$(dirname "$0")/scripts/radio.sh" # Подключаем скрипт радио
 . "$(dirname "$0")/scripts/audio.sh"
-. "$(dirname "$0")/scripts/radio.sh"
 . "$(dirname "$0")/scripts/dtmf.sh"
 
 log "Startup ----------"
 
-# Start both processes (audio processing and radio) in background and save their PIDs
-process_audio_stream 'main' &
-audio_pid=$!
-
-start_radio &
-radio_pid=$!
-
-# Graceful shutdown function
-graceful_shutdown() {
-    log "Received termination signal (SIGINT/SIGTERM), stopping child processes..."
-
-    # Properly kill audio process (if alive)
-    if ps -p $audio_pid > /dev/null 2>&1; then
-        log "Stopping process_audio_stream (PID: $audio_pid)"
-        kill -INT $audio_pid
-        wait $audio_pid 2>/dev/null
+# Функция для завершения фоновых процессов
+cleanup() {
+    log "Shutting down..."
+    # Используем функцию radio_stop для отправки сигнала процессу радио
+    radio_stop
+    # Отправляем сигнал завершения процессу обработки аудио
+    if [[ -n "$audio_pid" ]] && kill -0 "$audio_pid" 2>/dev/null; then
+        log_info "Sending SIGTERM to audio process $audio_pid"
+        kill -TERM "$audio_pid" 2>/dev/null
     fi
 
-    # Properly kill radio process (if alive)
-    if ps -p $radio_pid > /dev/null 2>&1; then
-        log "Stopping radio (PID: $radio_pid)"
-        kill -INT $radio_pid
-        wait $radio_pid 2>/dev/null
-    fi
-
-    log "All child processes stopped. Exiting main.sh"
+    # Ожидание завершения обоих процессов
+    wait "$audio_pid" "$radio_pid" 2>/dev/null
+    log "Shutdown complete."
     exit 0
 }
 
-# Set up signal handler: when script receives SIGINT or SIGTERM, call graceful_shutdown
-trap graceful_shutdown SIGINT SIGTERM
+# Установка обработчика сигналов INT (Ctrl+C) и TERM
+trap cleanup INT TERM
 
-# Wait for child processes to complete
-wait $audio_pid
-wait $radio_pid
+process_audio_stream 'main' &
+audio_pid=$!
+log_info "Audio processing started with PID: $audio_pid"
+
+start_radio &
+radio_pid=$! # PID процесса радио сохраняется здесь
+log_info "Radio playback started with PID: $radio_pid"
+
+
+# Ожидание завершения фоновых процессов
+wait "$audio_pid" "$radio_pid"
+
+log "Script finished."
